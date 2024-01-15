@@ -1,22 +1,29 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerMovement : MonoBehaviour
+public class Player : NetworkBehaviour
 {
-    [SerializeField] private float movementSpeed = 7;
-    [SerializeField] private GameObject playerBody;
-    [SerializeField] private Camera playerCamera;
-
+    [Header("Input and Interaction")]
     [SerializeField] private float sensitivity = 2f;
-    [SerializeField] private float interactDistance = 4f;
+    [SerializeField] private float movementSpeed = 7;
     [SerializeField] private LayerMask interactLayer;
+    [SerializeField] private float interactDistance = 4f;
     [SerializeField] private Color defaultCrosshairColor = Color.white;
     [SerializeField] private Color hoveringOnInteractableCrosshairColor = Color.green;
 
+    [Header("More Config")]
+    [SerializeField] private GameObject playerBody;
+    [SerializeField] private Camera playerCamera;
+
+    [Header("HUD")]
     [SerializeField] private PlayerHUD hudPrefab;
+
+    [Header("Weapons")]
+    [SerializeField] private GameObject laserPrefab;
 
     private CharacterController characterController;
     private PlayerInputActions playerActions;
@@ -24,36 +31,39 @@ public class PlayerMovement : MonoBehaviour
 
     private float xRot;
 
-    private void Awake()
+    private void Start()
     {
         characterController = GetComponent<CharacterController>();
-        playerActions = new PlayerInputActions();
 
-        //Spawn the HUD
-        Canvas canvas = FindObjectOfType<Canvas>();
-        if (!canvas)
+        if (IsOwner)
         {
-            Debug.LogError("There is no canvas in your scene! You need one to play!");
-            Debug.Break();
-            return;
-        }
+            playerActions = new PlayerInputActions();
+            playerActions.Enable();
+            ConnectInputEvents();
 
-        playerHUD = Instantiate(hudPrefab.gameObject, canvas.transform).GetComponent<PlayerHUD>();
+            //Spawn the HUD
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (!canvas)
+            {
+                Debug.LogError("There is no canvas in your scene! You need one to play!");
+                Debug.Break();
+                return;
+            }
 
-        xRot = 0;
+            playerHUD = Instantiate(hudPrefab.gameObject, canvas.transform).GetComponent<PlayerHUD>();
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
+            xRot = 0;
 
-    private void OnEnable()
-    {
-        playerActions.Enable();
-        ConnectInputEvents();
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }      
     }
 
     private void OnDisable()
     {
+        if (!IsOwner)
+            return;
+
         playerActions.Disable();
         DisconnectInputEvents();
     }
@@ -61,6 +71,7 @@ public class PlayerMovement : MonoBehaviour
     private void ConnectInputEvents()
     {
         playerActions.PlayerMovement.Interact.performed += OnInteractPressed;
+        playerActions.PlayerMovement.Fire.performed += OnFirePressed;
     }
 
     private void DisconnectInputEvents()
@@ -86,6 +97,9 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (!IsOwner)
+            return;
+
         HandleMovement();
         HandleLooking();
 
@@ -112,6 +126,11 @@ public class PlayerMovement : MonoBehaviour
 
         return false;
     } 
+
+    private void OnFirePressed(InputAction.CallbackContext context)
+    {
+
+    }
 
     private void HandleMovement()
     {

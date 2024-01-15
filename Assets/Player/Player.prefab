@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 4570840093744773309}
   - component: {fileID: 6463101723904333725}
   - component: {fileID: 3939514043809914009}
+  - component: {fileID: 3731027096547160715}
+  - component: {fileID: 6763364455583409514}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -48,7 +50,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3156556590
+  GlobalObjectIdHash: 4232866475
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -94,17 +96,60 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f99acc2f4d4f854bbd211e6787afe2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  movementSpeed: 7
-  playerBody: {fileID: 8239852421567176100}
-  playerCamera: {fileID: 1168892845976462870}
   sensitivity: 2
-  interactDistance: 4
+  movementSpeed: 7
   interactLayer:
     serializedVersion: 2
     m_Bits: 43
+  interactDistance: 4
   defaultCrosshairColor: {r: 0, g: 0, b: 0, a: 1}
   hoveringOnInteractableCrosshairColor: {r: 0, g: 1, b: 0, a: 1}
+  playerBody: {fileID: 8239852421567176100}
+  playerCamera: {fileID: 1168892845976462870}
   hudPrefab: {fileID: 1062180831255277737, guid: 6875f4388b9b9364686589211f4e451f, type: 3}
+  laserPrefab: {fileID: 7072531388499412290, guid: b84db6561c235f7418c0d88581ead353, type: 3}
+--- !u!114 &3731027096547160715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4328193083432425936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e8696389ea6800488cf066a8129a025, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 1
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 1
+  SyncScaleX: 0
+  SyncScaleY: 0
+  SyncScaleZ: 0
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  Interpolate: 1
+  SlerpPosition: 0
+--- !u!114 &6763364455583409514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4328193083432425936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ded2c118b6747ba4782d8b2c7fabfe2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7498215195854882085
 GameObject:
   m_ObjectHideFlags: 0
