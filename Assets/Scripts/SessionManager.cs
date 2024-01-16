@@ -138,7 +138,7 @@ public class SessionManager : NetworkBehaviour
         if (clientID == 0)
         {
             NetworkManager.Shutdown();
-            SceneManager.LoadScene("MainMenu");
+            SceneManager.LoadScene(0);
             return;
         }
 
