@@ -2,7 +2,6 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using static Lobby;
 
 public class BootScene : MonoBehaviour
 {
@@ -13,7 +12,7 @@ public class BootScene : MonoBehaviour
         Client
     }
 
-    private const string sceneToLoad = "Lobby";
+    private const string sceneToLoad = "DevTest";
 
     private string ipAddress = "127.0.0.1";
     private string port = "7777";
