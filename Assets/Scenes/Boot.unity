@@ -183,13 +183,13 @@ MonoBehaviour:
   NetworkConfig:
     ProtocolVersion: 0
     NetworkTransport: {fileID: 977141688}
-    PlayerPrefab: {fileID: 545297606055858337, guid: 36038f356e0094946b243fad25be17f2, type: 3}
+    PlayerPrefab: {fileID: 4328193083432425936, guid: 4ddf72af3e7075744b9f77931631ca57, type: 3}
     Prefabs:
       NetworkPrefabsLists:
       - {fileID: 11400000, guid: 973608df024b8ac40885048c7c6f497b, type: 2}
     TickRate: 30
     ClientConnectionBufferTimeout: 10
-    ConnectionApproval: 1
+    ConnectionApproval: 0
     ConnectionData: 
     EnableTimeResync: 0
     TimeResyncInterval: 30
@@ -309,8 +309,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   logBoxWidth: 400
-  logBoxHeight: 200
-  maxLogs: 20
+  logBoxHeight: 250
+  maxLogs: 15
 --- !u!1 &1891841535
 GameObject:
   m_ObjectHideFlags: 0

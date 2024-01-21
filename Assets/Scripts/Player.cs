@@ -24,14 +24,16 @@ public class Player : NetworkBehaviour
 
     [Header("Weapons")]
     [SerializeField] private GameObject laserPrefab;
+    [SerializeField] private float timeBetweenFire = .3f;
 
+    private float timeToNextFire = 0.0f;
     private CharacterController characterController;
     private PlayerInputActions playerActions;
-    private PlayerHUD playerHUD;
+    //private PlayerHUD playerHUD;
 
     private float xRot;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
         characterController = GetComponent<CharacterController>();
 
@@ -41,6 +43,7 @@ public class Player : NetworkBehaviour
             playerActions.Enable();
             ConnectInputEvents();
 
+            /*
             //Spawn the HUD
             Canvas canvas = FindObjectOfType<Canvas>();
             if (!canvas)
@@ -51,7 +54,7 @@ public class Player : NetworkBehaviour
             }
 
             playerHUD = Instantiate(hudPrefab.gameObject, canvas.transform).GetComponent<PlayerHUD>();
-
+            */
             xRot = 0;
 
             Cursor.lockState = CursorLockMode.Locked;
@@ -97,6 +100,8 @@ public class Player : NetworkBehaviour
 
     private void Update()
     {
+        playerCamera.enabled = IsOwner;
+
         if (!IsOwner)
             return;
 
@@ -106,7 +111,8 @@ public class Player : NetworkBehaviour
         Color crosshairColor = IsLookingAtInteractable() ? hoveringOnInteractableCrosshairColor : defaultCrosshairColor;
         crosshairColor.a = 1f;
 
-        playerHUD.Crosshair.color = crosshairColor;
+        timeToNextFire -= Time.deltaTime;
+     //   playerHUD.Crosshair.color = crosshairColor;
     }
 
     private bool PerformInteractionRaycast(out RaycastHit hit)
@@ -129,7 +135,33 @@ public class Player : NetworkBehaviour
 
     private void OnFirePressed(InputAction.CallbackContext context)
     {
+        if (timeToNextFire <= 0.0f)
+        {
+            ShootLaser();
 
+            timeToNextFire = timeBetweenFire;
+        }
+    }
+
+    private void ShootLaser()
+    {
+        Debug.Log("Firing laser");
+        ShootLaserServerRpc();
+    }
+
+    [ServerRpc]
+    private void ShootLaserServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        Vector3 spawnPoint = playerCamera.transform.position;
+        Vector3 forwardDirection = playerCamera.transform.forward;
+
+        GameObject laserObject = Instantiate(laserPrefab, spawnPoint, Quaternion.identity);
+        laserObject.GetComponent<NetworkObject>().Spawn();
+
+        laserObject.transform.forward = forwardDirection;
+
+        LaserProjectile laser = laserObject.GetComponent<LaserProjectile>();
+        laser.SetShooterID(serverRpcParams.Receive.SenderClientId);
     }
 
     private void HandleMovement()

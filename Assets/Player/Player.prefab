@@ -50,7 +50,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 4232866475
+  GlobalObjectIdHash: 3156556590
+  InScenePlacedSourceGlobalObjectIdHash: 0
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -108,6 +109,8 @@ MonoBehaviour:
   playerCamera: {fileID: 1168892845976462870}
   hudPrefab: {fileID: 1062180831255277737, guid: 6875f4388b9b9364686589211f4e451f, type: 3}
   laserPrefab: {fileID: 7072531388499412290, guid: b84db6561c235f7418c0d88581ead353, type: 3}
+  firePoint: {fileID: 0}
+  timeBetweenFire: 0.3
 --- !u!114 &3731027096547160715
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -120,6 +123,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e8696389ea6800488cf066a8129a025, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  UseUnreliableDeltas: 0
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1

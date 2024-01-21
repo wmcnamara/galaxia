@@ -40,6 +40,8 @@ public class GameManager : NetworkBehaviour
 
         if (IsServer)
         {
+            bool foundCorrespondingGameMode = false;
+
             foreach (var gameModeDataPair in availableGameModes.AvailableGameModes)
             {
                 if (gameModeDataPair.GameMode == gameModeTypeToLoad)
@@ -55,9 +57,11 @@ public class GameManager : NetworkBehaviour
                     return;
                 }
             }
+
+            if (!foundCorrespondingGameMode)
+                Debug.LogError("GameModeType: " + gameModeTypeToLoad.ToString() + " is not in the AvailableGameModes list. Please add it to this scriptable object");
         }
 
-        Debug.LogError("GameModeType: " + gameModeTypeToLoad.ToString() + " is not in the AvailableGameModes list. Please add it to this scriptable object");
     }
 
     public override void OnNetworkDespawn()
