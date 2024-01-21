@@ -10,21 +10,22 @@ public class GameModeGalaxia : GameModeBase
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
-
-        if (IsServer)
-        {
-            foreach(NetworkClient client in NetworkManager.Singleton.ConnectedClientsList)
-            {
-                client.PlayerObject.Despawn();
-
-                GameObject playerObject = Instantiate(player);
-                playerObject.GetComponent<NetworkObject>().SpawnAsPlayerObject(client.ClientId, true);
-            }           
-        }
     }
 
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
     }
+
+    /*
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestSpawnPlayerObjectServerRpc(ulong clientIdToSpawnFor)
+    {
+        NetworkClient client = NetworkManager.Singleton.ConnectedClients[clientIdToSpawnFor];
+        client.PlayerObject?.Despawn();
+
+        GameObject playerObject = Instantiate(player);
+        playerObject.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientIdToSpawnFor, true);
+    }
+    */
 }
