@@ -1,50 +1,56 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.UIElements;
 
+public struct LaserPayload : INetworkSerializable
+{
+    public Vector3 position;
+    public Vector3 velocity;
+
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        serializer.SerializeValue(ref position);
+        serializer.SerializeValue(ref velocity);
+    }
+}
+
+[RequireComponent(typeof(AudioSource))]
 public class LaserProjectile : NetworkBehaviour
 {
     [SerializeField] private float bulletSpeed = 4.0f;
     [SerializeField] private int maxBounces = 3;
     [SerializeField] private LayerMask hitMask;
     [SerializeField] private GameObject destroyParticle;
+    [SerializeField] private AudioClip onBounceSound;
 
-    private NetworkVariable<ulong> shooterClientID = new NetworkVariable<ulong>(0);
+    private ulong shooterClientID = 0;
     private Vector3 laserVelocty = Vector3.zero;
     private Vector3 previousPosition = Vector3.zero;
     private GameObject previouslyHitObject = null;
+    private AudioSource audioSource = null;
 
     private int bouncesUntilDestroy;
 
     public void SetShooterID(ulong shooterID)
     {
-        if (IsServer)
-        {
-            shooterClientID.Value = shooterID;
-        }
+        shooterClientID = shooterID;
     }
 
     private void Start()
     {
-        if (IsServer)
-        {
-            laserVelocty = transform.forward;
-            bouncesUntilDestroy = maxBounces;
-        }
+        previousPosition = transform.position;
+        laserVelocty = transform.forward;
+        bouncesUntilDestroy = maxBounces;
+         
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void Update()
     {
-        if (IsServer)
-        {
-            Vector3 currentPos = transform.position;
-            PerformLaserRaycast(previousPosition, currentPos);
-            previousPosition = currentPos;
+        Vector3 currentPos = transform.position;
+        PerformLaserRaycast(previousPosition, currentPos);
+        previousPosition = currentPos;
 
-            transform.Translate(laserVelocty * bulletSpeed * Time.deltaTime, Space.World);
-        }
+        transform.Translate(laserVelocty * bulletSpeed * Time.deltaTime, Space.World);
     }
 
     void PerformLaserRaycast(Vector3 prevPos, Vector3 currentPos)
@@ -57,10 +63,12 @@ public class LaserProjectile : NetworkBehaviour
             //Check for a player hit
             if (info.transform.TryGetComponent(out Player player))
             {
-                if (player.OwnerClientId != shooterClientID.Value)
+                //Hit a player
+                DestroyLaser();
+
+                if (NetworkManager.IsServer)
                 {
-                    //Hit a player
-                    DestroyLaser();
+                    player.Damage(shooterClientID, 100);
                 }
 
                 return;
@@ -70,13 +78,16 @@ public class LaserProjectile : NetworkBehaviour
                 return;
 
 
-            //Bounce of the wall
+            //Bounce off the wall
             laserVelocty = Vector3.Reflect(laserVelocty, info.normal);
             laserVelocty.Normalize();
+
             transform.position = info.point;
             transform.forward = laserVelocty;
             bouncesUntilDestroy--;
             previouslyHitObject = info.transform.gameObject;
+
+            audioSource.PlayOneShot(onBounceSound);
 
             Debug.Log("Bounce Registered. Bounces left: " + bouncesUntilDestroy);
 
@@ -87,9 +98,18 @@ public class LaserProjectile : NetworkBehaviour
         }
     }
 
-    void DestroyLaser()
+    private void DestroyLaser()
     {
         Instantiate(destroyParticle, transform.position, Quaternion.identity);
         Destroy(gameObject);
+    }
+
+    [ClientRpc]
+    private void UpdateLaserDataClientRpc(LaserPayload laserPayload)
+    {
+        transform.position = laserPayload.position;
+        laserVelocty = laserPayload.velocity;
+
+        transform.forward = laserVelocty;
     }
 }
