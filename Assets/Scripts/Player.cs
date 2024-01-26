@@ -5,7 +5,8 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class Player : NetworkBehaviour
+[RequireComponent(typeof(AudioSource))]
+public class Player : NetworkBehaviour, IDamagable
 {
     [Header("Input and Interaction")]
     [SerializeField] private float sensitivity = 2f;
@@ -25,17 +26,31 @@ public class Player : NetworkBehaviour
     [Header("Weapons")]
     [SerializeField] private GameObject laserPrefab;
     [SerializeField] private float timeBetweenFire = .3f;
+    [SerializeField] private AudioClip shootSound;
+
+    private NetworkVariable<PlayerState> playerState = new NetworkVariable<PlayerState>(PlayerState.Alive);
 
     private float timeToNextFire = 0.0f;
     private CharacterController characterController;
     private PlayerInputActions playerActions;
+    private AudioSource playerAudioSource;
+
     //private PlayerHUD playerHUD;
 
     private float xRot;
+    
+    enum PlayerState
+    {
+        Alive,
+        Dead,
+        Spectating
+    }
 
     public override void OnNetworkSpawn()
     {
         characterController = GetComponent<CharacterController>();
+        playerAudioSource = GetComponent<AudioSource>();
+        playerState.Value = PlayerState.Alive;
 
         if (IsOwner)
         {
@@ -59,7 +74,12 @@ public class Player : NetworkBehaviour
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-        }      
+        }
+    }
+
+    public void InflictDamage()
+    {
+
     }
 
     private void OnDisable()
@@ -101,6 +121,7 @@ public class Player : NetworkBehaviour
     private void Update()
     {
         playerCamera.enabled = IsOwner;
+        playerCamera.GetComponent<AudioListener>().enabled = IsOwner;
 
         if (!IsOwner)
             return;
@@ -146,22 +167,51 @@ public class Player : NetworkBehaviour
     private void ShootLaser()
     {
         Debug.Log("Firing laser");
-        ShootLaserServerRpc();
+
+        //If we are on the server, just send 
+
+        if (IsServer)
+        {
+            CreateLaserClientRpc(playerCamera.transform.position, playerCamera.transform.forward, OwnerClientId);
+
+            if (!IsHost)
+            {
+                Debug.LogWarning("Shooting lasers is host dependent. You need to change this code to use a dedicated server.");
+            }
+        }
+        else
+        {
+            CreateLaserObject(playerCamera.transform.position, playerCamera.transform.forward, OwnerClientId);
+
+            CreateLaserServerRpc(playerCamera.transform.position, playerCamera.transform.forward);
+        }
+
+        playerAudioSource.PlayOneShot(shootSound);
     }
 
     [ServerRpc]
-    private void ShootLaserServerRpc(ServerRpcParams serverRpcParams = default)
+    private void CreateLaserServerRpc(Vector3 spawnPoint, Vector3 forwardDirection, ServerRpcParams serverRpcParams = default)
     {
-        Vector3 spawnPoint = playerCamera.transform.position;
-        Vector3 forwardDirection = playerCamera.transform.forward;
+        CreateLaserObject(spawnPoint, forwardDirection, serverRpcParams.Receive.SenderClientId);
+    }
 
+    [ClientRpc]
+    private void CreateLaserClientRpc(Vector3 spawnPoint, Vector3 forwardDirection, ulong shooterClientID)
+    {
+        CreateLaserObject(spawnPoint, forwardDirection, shooterClientID);
+    }
+
+    private LaserProjectile CreateLaserObject(Vector3 spawnPoint, Vector3 forwardDirection, ulong shooterID)
+    {
         GameObject laserObject = Instantiate(laserPrefab, spawnPoint, Quaternion.identity);
-        laserObject.GetComponent<NetworkObject>().Spawn();
 
+        laserObject.transform.position = spawnPoint;
         laserObject.transform.forward = forwardDirection;
 
         LaserProjectile laser = laserObject.GetComponent<LaserProjectile>();
-        laser.SetShooterID(serverRpcParams.Receive.SenderClientId);
+        laser.SetShooterID(shooterID);
+
+        return laser;
     }
 
     private void HandleMovement()
@@ -186,5 +236,23 @@ public class Player : NetworkBehaviour
         transform.Rotate(Vector3.up * look.x);
 
         playerCamera.transform.localRotation = Quaternion.Euler(xRot, 0.0f, 0.0f);
+    }
+
+    [ClientRpc]
+    public void SetPositionAndRotationClientRpc(Vector3 pos, Quaternion rot)
+    {
+        characterController.enabled = false;
+        transform.position = pos;
+        transform.rotation = rot;
+        characterController.enabled = true;
+    }
+
+    public void Damage(ulong instigator, int amt)
+    {
+        if (IsServer)
+        {
+            playerState.Value = PlayerState.Dead;
+            EventContainer.GamePlay.FireOnPlayerDied(OwnerClientId);
+        }
     }
 }
