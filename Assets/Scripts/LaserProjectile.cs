@@ -63,13 +63,14 @@ public class LaserProjectile : NetworkBehaviour
             //Check for a player hit
             if (info.transform.TryGetComponent(out Player player))
             {
+                //Stops a situation where the player can hit his own laser after firing on another PC because of latency
+                if (bouncesUntilDestroy == maxBounces && player.OwnerClientId == shooterClientID)
+                    return;
+
                 //Hit a player
                 DestroyLaser();
 
-                if (NetworkManager.IsServer)
-                {
-                    player.Damage(shooterClientID, 100);
-                }
+                player.ApplyDamage(100, DamageReason.Laser, shooterClientID);
 
                 return;
             }
@@ -102,14 +103,5 @@ public class LaserProjectile : NetworkBehaviour
     {
         Instantiate(destroyParticle, transform.position, Quaternion.identity);
         Destroy(gameObject);
-    }
-
-    [ClientRpc]
-    private void UpdateLaserDataClientRpc(LaserPayload laserPayload)
-    {
-        transform.position = laserPayload.position;
-        laserVelocty = laserPayload.velocity;
-
-        transform.forward = laserVelocty;
     }
 }

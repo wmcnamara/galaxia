@@ -5,8 +5,16 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum PlayerState
+{
+    Alive,
+    Dead,
+    Spectating
+}
+
 [RequireComponent(typeof(AudioSource))]
-public class Player : NetworkBehaviour, IDamagable
+[RequireComponent(typeof(Health))]
+public class Player : NetworkBehaviour, IDamageable
 {
     [Header("Input and Interaction")]
     [SerializeField] private float sensitivity = 2f;
@@ -28,58 +36,109 @@ public class Player : NetworkBehaviour, IDamagable
     [SerializeField] private float timeBetweenFire = .3f;
     [SerializeField] private AudioClip shootSound;
 
+    private bool blockInput;
+
+    public PlayerState State
+    {
+        get
+        {
+            return playerState.Value;
+        }
+
+        set
+        {
+            playerState.Value = value;
+        }
+    }
+
     private NetworkVariable<PlayerState> playerState = new NetworkVariable<PlayerState>(PlayerState.Alive);
 
     private float timeToNextFire = 0.0f;
     private CharacterController characterController;
     private PlayerInputActions playerActions;
     private AudioSource playerAudioSource;
+    private Health health;
+
 
     //private PlayerHUD playerHUD;
 
     private float xRot;
-    
-    enum PlayerState
-    {
-        Alive,
-        Dead,
-        Spectating
-    }
 
     public override void OnNetworkSpawn()
     {
+        base.OnNetworkSpawn();
+
         characterController = GetComponent<CharacterController>();
         playerAudioSource = GetComponent<AudioSource>();
-        playerState.Value = PlayerState.Alive;
+        health = GetComponent<Health>();
 
+        playerState.Value = PlayerState.Alive;
+        playerState.OnValueChanged += OnPlayerStateChanged;
+
+        xRot = 0;
+
+        //Setup input stuff
         if (IsOwner)
         {
             playerActions = new PlayerInputActions();
             playerActions.Enable();
             ConnectInputEvents();
 
-            /*
-            //Spawn the HUD
-            Canvas canvas = FindObjectOfType<Canvas>();
-            if (!canvas)
-            {
-                Debug.LogError("There is no canvas in your scene! You need one to play!");
-                Debug.Break();
-                return;
-            }
-
-            playerHUD = Instantiate(hudPrefab.gameObject, canvas.transform).GetComponent<PlayerHUD>();
-            */
-            xRot = 0;
-
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
     }
 
-    public void InflictDamage()
+    public override void OnNetworkDespawn()
     {
+        base.OnNetworkDespawn();
+        playerState.OnValueChanged -= OnPlayerStateChanged;
+    }
 
+    [ClientRpc]
+    public void SetPositionAndRotationClientRpc(Vector3 pos, Quaternion rot)
+    {
+        characterController.enabled = false;
+        transform.position = pos;
+        transform.rotation = rot;
+        characterController.enabled = true;
+    }
+
+    public void Kill()
+    {
+        if (IsServer)
+        {
+            playerState.Value = PlayerState.Dead;
+        }
+        else
+        {
+            DisplayClientSideDeathFX();
+        }
+
+        EventContainer.GamePlay.FireOnPlayerDied(OwnerClientId);
+    }
+
+    public void ApplyDamage(int amt, DamageReason damageReason, ulong instigator = 0)
+    {
+        bool isDead;
+        health.AddDamage(amt, damageReason, out isDead);
+
+        if (isDead)
+        {
+            Kill();
+        }
+    }
+
+    //Should reet the player to a playable state, ready to go
+    public void ResetLife()
+    {
+        SetRenderersActive(true);
+
+        if (IsServer)
+        {
+            health.ResetHealth();
+            playerState.Value = PlayerState.Alive;
+        }
     }
 
     private void OnDisable()
@@ -100,6 +159,7 @@ public class Player : NetworkBehaviour, IDamagable
     private void DisconnectInputEvents()
     {
         playerActions.PlayerMovement.Interact.performed -= OnInteractPressed;
+        playerActions.PlayerMovement.Fire.performed -= OnFirePressed;
     }
 
     private void OnInteractPressed(InputAction.CallbackContext context) 
@@ -128,12 +188,72 @@ public class Player : NetworkBehaviour, IDamagable
 
         HandleMovement();
         HandleLooking();
+        UpdateState();
+        HandleUI();
+        TickTimers();
+    }
 
+    private void OnPlayerStateChanged(PlayerState previousState, PlayerState currentState)
+    {
+        //Handle state changes
+        if (previousState != currentState)
+        {
+            //Became alive
+            if (currentState == PlayerState.Alive)
+            {
+                blockInput = false;
+
+                SetRenderersActive(true);
+            }
+
+            //Became dead
+            if (currentState == PlayerState.Dead)
+            {
+                blockInput = true;
+
+                SetRenderersActive(false);
+
+                if (IsOwner)
+                {
+                    FindObjectOfType<GameplayUI>().SetLocalOnScreenMessageText("You died...", 3.0f);
+                }
+            }
+        }
+    }
+
+    private void SetRenderersActive(bool active)
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.enabled = active;
+        }
+    }
+
+    private void UpdateState()
+    {
+        switch (playerState.Value)
+        {
+            case PlayerState.Alive:
+                break;
+
+            case PlayerState.Dead:
+                break;
+
+            case PlayerState.Spectating:
+                break;
+        }
+    }
+
+    private void HandleUI()
+    {
         Color crosshairColor = IsLookingAtInteractable() ? hoveringOnInteractableCrosshairColor : defaultCrosshairColor;
         crosshairColor.a = 1f;
+    }
 
+    private void TickTimers()
+    {
         timeToNextFire -= Time.deltaTime;
-     //   playerHUD.Crosshair.color = crosshairColor;
     }
 
     private bool PerformInteractionRaycast(out RaycastHit hit)
@@ -156,6 +276,9 @@ public class Player : NetworkBehaviour, IDamagable
 
     private void OnFirePressed(InputAction.CallbackContext context)
     {
+        if (blockInput)
+            return;
+
         if (timeToNextFire <= 0.0f)
         {
             ShootLaser();
@@ -216,6 +339,9 @@ public class Player : NetworkBehaviour, IDamagable
 
     private void HandleMovement()
     {
+        if (blockInput)
+            return;
+
         Vector2 movementInput = playerActions.PlayerMovement.Movement.ReadValue<Vector2>();
 
         Vector3 movement = new Vector3(movementInput.x, 0.0f, movementInput.y) * movementSpeed * Time.deltaTime;
@@ -227,6 +353,9 @@ public class Player : NetworkBehaviour, IDamagable
 
     private void HandleLooking()
     {
+        if (blockInput)
+            return;
+
         Vector2 lookInput = playerActions.PlayerMovement.Look.ReadValue<Vector2>();
 
         Vector2 look = lookInput * sensitivity * 0.1f;
@@ -238,21 +367,8 @@ public class Player : NetworkBehaviour, IDamagable
         playerCamera.transform.localRotation = Quaternion.Euler(xRot, 0.0f, 0.0f);
     }
 
-    [ClientRpc]
-    public void SetPositionAndRotationClientRpc(Vector3 pos, Quaternion rot)
+    private void DisplayClientSideDeathFX()
     {
-        characterController.enabled = false;
-        transform.position = pos;
-        transform.rotation = rot;
-        characterController.enabled = true;
-    }
 
-    public void Damage(ulong instigator, int amt)
-    {
-        if (IsServer)
-        {
-            playerState.Value = PlayerState.Dead;
-            EventContainer.GamePlay.FireOnPlayerDied(OwnerClientId);
-        }
     }
 }
