@@ -23,9 +23,10 @@ public class GameModeGalaxia : GameModeBase
 
     public override void OnNetworkDespawn()
     {
-        EventContainer.GamePlay.OnPlayerDied -= OnPlayerDied;
-
         base.OnNetworkDespawn();
+
+        EventContainer.GamePlay.OnPlayerDied -= OnPlayerDied;
+        NetworkManager.OnClientConnectedCallback -= OnClientConnected;
     }
 
     private void OnPlayerDied(ulong playerThatDied)
