@@ -12,7 +12,7 @@ public class BootScene : MonoBehaviour
         Client
     }
 
-    private const string sceneToLoad = "DevTest";
+    private string sceneToLoad = "Flux";
 
     private string ipAddress = "127.0.0.1";
     private string port = "7777";
@@ -31,6 +31,8 @@ public class BootScene : MonoBehaviour
 
         GUILayout.Label("Port");
         port = GUILayout.TextField(port, 6);
+
+        sceneToLoad = GUILayout.TextField(sceneToLoad);
 
         // Button to confirm the selection
         if (GUILayout.Button("Confirm"))
