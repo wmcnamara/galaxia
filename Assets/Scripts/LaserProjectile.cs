@@ -70,6 +70,12 @@ public class LaserProjectile : NetworkBehaviour
                 //Hit a player
                 DestroyLaser();
 
+                //Incremement the tally
+                if (NetworkManager.IsServer && shooterClientID != player.OwnerClientId)
+                {
+                    player.Score.Value += 1;
+                }
+
                 player.ApplyDamage(100, DamageReason.Laser, shooterClientID);
 
                 return;

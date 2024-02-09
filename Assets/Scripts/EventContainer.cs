@@ -8,10 +8,16 @@ public static class EventContainer
     public static class GamePlay
     {
         public static event UnityAction<ulong> OnPlayerDied;
+        public static event UnityAction<ulong, int> OnPlayerScored;
 
         public static void FireOnPlayerDied(ulong playerID)
         {
             OnPlayerDied?.Invoke(playerID);
+        }
+
+        public static void FireOnPlayedScored(ulong playerID, int amt)
+        {
+            OnPlayerScored?.Invoke(playerID, amt);
         }
     }
 

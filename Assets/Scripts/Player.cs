@@ -36,6 +36,8 @@ public class Player : NetworkBehaviour, IDamageable
     [SerializeField] private float timeBetweenFire = .3f;
     [SerializeField] private AudioClip shootSound;
 
+    public NetworkVariable<int> Score = new NetworkVariable<int>(0);
+
     private bool blockInput;
 
     public PlayerState State
@@ -74,6 +76,7 @@ public class Player : NetworkBehaviour, IDamageable
 
         playerState.Value = PlayerState.Alive;
         playerState.OnValueChanged += OnPlayerStateChanged;
+        Score.OnValueChanged += OnScoreChanged;
 
         xRot = 0;
 
@@ -92,7 +95,13 @@ public class Player : NetworkBehaviour, IDamageable
     public override void OnNetworkDespawn()
     {
         base.OnNetworkDespawn();
+        Score.OnValueChanged -= OnScoreChanged;
         playerState.OnValueChanged -= OnPlayerStateChanged;
+    }
+
+    private void OnScoreChanged(int prevScore, int currentScore)
+    {
+        EventContainer.GamePlay.FireOnPlayedScored(OwnerClientId, currentScore);
     }
 
     [ClientRpc]
