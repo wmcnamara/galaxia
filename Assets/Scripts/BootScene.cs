@@ -32,6 +32,7 @@ public class BootScene : MonoBehaviour
         GUILayout.Label("Port");
         port = GUILayout.TextField(port, 6);
 
+        GUILayout.Label("Map");
         sceneToLoad = GUILayout.TextField(sceneToLoad);
 
         // Button to confirm the selection
