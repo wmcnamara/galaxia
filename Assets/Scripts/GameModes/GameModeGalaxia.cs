@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.Events;
 using System.Linq;
 
 public class GameModeGalaxia : GameModeBase
 {
-    public int playersNeededToStart = 2;
+    [SerializeField] private int playersNeededToStart = 2;
 
     private List<SpawnPoint> spawnPoints = new List<SpawnPoint>();
     private NetworkVariable<bool> gameHasStarted = new NetworkVariable<bool>(false);
