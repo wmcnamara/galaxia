@@ -150,6 +150,11 @@ public class Player : NetworkBehaviour, IDamageable
         }
     }
 
+    public void TogglePauseMenu() 
+    {
+        FindObjectOfType<PauseMenu>().TogglePauseMenu();
+    }
+
     private void OnDisable()
     {
         if (!IsOwner)
@@ -163,12 +168,19 @@ public class Player : NetworkBehaviour, IDamageable
     {
         playerActions.PlayerMovement.Interact.performed += OnInteractPressed;
         playerActions.PlayerMovement.Fire.performed += OnFirePressed;
+        playerActions.PlayerMovement.Cancel.performed += OnCancelPressed;
     }
 
     private void DisconnectInputEvents()
     {
         playerActions.PlayerMovement.Interact.performed -= OnInteractPressed;
         playerActions.PlayerMovement.Fire.performed -= OnFirePressed;
+        playerActions.PlayerMovement.Cancel.performed -= OnCancelPressed;
+    }
+
+    private void OnCancelPressed(InputAction.CallbackContext context)
+    {
+        TogglePauseMenu();
     }
 
     private void OnInteractPressed(InputAction.CallbackContext context) 
@@ -185,6 +197,16 @@ public class Player : NetworkBehaviour, IDamageable
 
             Debug.Log("Object is not interactable: " + hitData.transform.name);
         }
+    }
+
+    private void Start()
+    {
+        ReloadSensitivity();
+    }
+
+    public void ReloadSensitivity()
+    {
+        sensitivity = PlayerConfigConsts.Sensitivity;
     }
 
     private void Update()
@@ -288,7 +310,7 @@ public class Player : NetworkBehaviour, IDamageable
         if (blockInput)
             return;
 
-        if (timeToNextFire <= 0.0f)
+        if (timeToNextFire <= 0.0f && !Cursor.visible)
         {
             ShootLaser();
 
@@ -362,7 +384,7 @@ public class Player : NetworkBehaviour, IDamageable
 
     private void HandleLooking()
     {
-        if (blockInput)
+        if (blockInput || Cursor.visible)
             return;
 
         Vector2 lookInput = playerActions.PlayerMovement.Look.ReadValue<Vector2>();
