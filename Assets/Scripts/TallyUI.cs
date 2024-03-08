@@ -37,6 +37,7 @@ public class TallyUI : MonoBehaviour
     {
         ClearScoreUI();
 
+        //This is to get around the dumb fact that unity doesnt let me access player bodies on the client. Idk either.
         Player[] playersInScene = FindObjectsOfType<Player>();
 
         foreach (ulong clientID in NetworkManager.Singleton.ConnectedClientsIds)

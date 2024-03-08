@@ -41,6 +41,11 @@ public class BootScene : MonoBehaviour
             StartConnection(connectionType);
         }
 
+        //Allow quiting
+        if (GUILayout.Button("Quit Game"))
+        {
+            Application.Quit();
+        }
         GUILayout.EndVertical();
     }
 
